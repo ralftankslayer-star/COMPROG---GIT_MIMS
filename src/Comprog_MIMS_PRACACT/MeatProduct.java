@@ -1,3 +1,5 @@
+package Comprog_MIMS_PRACACT;
+
 public abstract class MeatProduct {
     protected int productId;
     protected String meatName;

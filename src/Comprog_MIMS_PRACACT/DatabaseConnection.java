@@ -1,3 +1,4 @@
+package Comprog_MIMS_PRACACT;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;

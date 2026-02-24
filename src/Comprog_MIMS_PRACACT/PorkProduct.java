@@ -1,3 +1,5 @@
+package Comprog_MIMS_PRACACT;
+
 public class PorkProduct extends MeatProduct {
     private String cutType;
     private boolean hasBone;

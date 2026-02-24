@@ -1,3 +1,5 @@
+package Comprog_MIMS_PRACACT;
+
 public class BeefProduct extends MeatProduct {
     private String beefGrade;
     private int marblingScore;

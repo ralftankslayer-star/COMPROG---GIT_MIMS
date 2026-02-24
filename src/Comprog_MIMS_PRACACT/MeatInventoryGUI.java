@@ -1,3 +1,4 @@
+package Comprog_MIMS_PRACACT;
 import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JPanel;

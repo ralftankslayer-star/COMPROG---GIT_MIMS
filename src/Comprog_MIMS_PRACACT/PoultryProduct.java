@@ -1,3 +1,5 @@
+package Comprog_MIMS_PRACACT;
+
 public class PoultryProduct extends MeatProduct {
     private String partName;
     private boolean isOrganic;
