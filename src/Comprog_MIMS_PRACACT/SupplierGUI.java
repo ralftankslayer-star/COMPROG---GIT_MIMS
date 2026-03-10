@@ -1,10 +1,10 @@
 package Comprog_MIMS_PRACACT;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.List;
 
@@ -14,12 +14,12 @@ public class SupplierGUI extends JFrame {
     private JTable table;
     private DefaultTableModel tableModel;
     private InventoryDAO inventoryDAO;
-    private TableRowSorter<DefaultTableModel> rowSorter;
 
     private JTextField txtName, txtPrice, txtStock, txtSpecific2, txtSearch;
     private JComboBox<String> cbCategory, cbSpecific1;
     private JCheckBox chkSpecific2, chkShowAsNew;
-    private JLabel lblSpecific1, lblSpecific2, lblConnectionStatus, lblSearch;
+    private JLabel lblSpecific1, lblSpecific2, lblConnectionStatus;
+    private TableRowSorter<DefaultTableModel> sorter;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(() -> {
@@ -66,32 +66,32 @@ public class SupplierGUI extends JFrame {
         btnQuit.addActionListener(e -> System.exit(0));
         contentPane.add(btnQuit);
 
-        lblSearch = addLabel("Search:", 20, 60);
-        txtSearch = addTextField(70, 60, 250);
+        JLabel lblSearch = new JLabel("Search:");
+        lblSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSearch.setBounds(20, 50, 50, 20);
+        contentPane.add(lblSearch);
+
+        txtSearch = new JTextField();
+        txtSearch.setBounds(70, 50, 200, 22);
+        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { filter(); }
+            public void removeUpdate(DocumentEvent e) { filter(); }
+            public void changedUpdate(DocumentEvent e) { filter(); }
+        });
+        contentPane.add(txtSearch);
 
         JScrollPane scrollPane = new JScrollPane();
-        scrollPane.setBounds(20, 95, 870, 245);
+        scrollPane.setBounds(20, 85, 870, 255);
         contentPane.add(scrollPane);
 
         tableModel = new DefaultTableModel(new String[]{"ID", "Name", "Category", "Price/Kg", "Stock", "Specifics", "Show New"}, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
         table = new JTable(tableModel);
+        
+        sorter = new TableRowSorter<>(tableModel);
+        table.setRowSorter(sorter);
         scrollPane.setViewportView(table);
-
-        rowSorter = new TableRowSorter<>(tableModel);
-        table.setRowSorter(rowSorter);
-
-        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { filter(); }
-            @Override public void removeUpdate(DocumentEvent e) { filter(); }
-            @Override public void changedUpdate(DocumentEvent e) { filter(); }
-            private void filter() {
-                String text = txtSearch.getText();
-                if (text.trim().length() == 0) rowSorter.setRowFilter(null);
-                else rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
-            }
-        });
         
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) populateFieldsFromSelection();
@@ -163,6 +163,15 @@ public class SupplierGUI extends JFrame {
         updateSpecificFields();
         toggleTheme(true);
         refreshTable();
+    }
+
+    private void filter() {
+        String text = txtSearch.getText();
+        if (text.trim().length() == 0) {
+            sorter.setRowFilter(null);
+        } else {
+            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+        }
     }
 
     private JLabel addLabel(String text, int x, int y) {
@@ -268,8 +277,8 @@ public class SupplierGUI extends JFrame {
     private void populateFieldsFromSelection() {
         int viewRow = table.getSelectedRow();
         if (viewRow < 0) return;
+        int modelRow = table.convertRowIndexToModel(viewRow);
         try {
-            int modelRow = table.convertRowIndexToModel(viewRow);
             int id = (int) tableModel.getValueAt(modelRow, 0);
             List<MeatProduct> products = inventoryDAO.getAllProducts();
             MeatProduct selected = products.stream().filter(p -> p.getProductId() == id).findFirst().orElse(null);
@@ -298,15 +307,33 @@ public class SupplierGUI extends JFrame {
     private MeatProduct createProductFromFields(int id) {
         try {
             String name = txtName.getText().trim();
-            if (name.isEmpty()) return null;
+            if (name.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Product name cannot be empty.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return null;
+            }
+            
             double price = Double.parseDouble(txtPrice.getText().trim());
+            if (price < 0) {
+                JOptionPane.showMessageDialog(this, "Price cannot be negative.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return null;
+            }
+            
             double stock = Double.parseDouble(txtStock.getText().trim());
+            if (stock < 0) {
+                JOptionPane.showMessageDialog(this, "Stock cannot be negative.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return null;
+            }
+            
             String cat = (String) cbCategory.getSelectedItem();
             String spec1 = (String) cbSpecific1.getSelectedItem();
 
             MeatProduct mp = null;
             if ("Beef".equals(cat)) {
                 int marbling = Integer.parseInt(txtSpecific2.getText().trim());
+                if (marbling < 1 || marbling > 10) {
+                    JOptionPane.showMessageDialog(this, "Marbling score must be between 1 and 10.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
                 mp = new BeefProduct(id, name, price, stock, spec1, marbling);
             } else if ("Pork".equals(cat)) {
                 mp = new PorkProduct(id, name, price, stock, spec1, chkSpecific2.isSelected());
@@ -316,7 +343,7 @@ public class SupplierGUI extends JFrame {
             if (mp != null) mp.setShowAsNew(chkShowAsNew.isSelected());
             return mp;
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Invalid number format.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Invalid number format in Price, Stock, or Marbling.", "Input Error", JOptionPane.ERROR_MESSAGE);
         }
         return null;
     }

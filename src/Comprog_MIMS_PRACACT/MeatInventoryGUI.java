@@ -1,10 +1,10 @@
 package Comprog_MIMS_PRACACT;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -17,9 +17,9 @@ public class MeatInventoryGUI extends JFrame {
     private JTable table;
     private DefaultTableModel tableModel;
     private InventoryDAO inventoryDAO;
-    private JLabel lblConnectionStatus, lblLastUpdated, lblSearch;
+    private JLabel lblConnectionStatus, lblLastUpdated;
     private JTextField txtSearch;
-    private TableRowSorter<DefaultTableModel> rowSorter;
+    private TableRowSorter<DefaultTableModel> sorter;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(() -> {
@@ -65,16 +65,21 @@ public class MeatInventoryGUI extends JFrame {
         lblLastUpdated.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         lblLastUpdated.setBounds(520, 20, 200, 20);
         contentPane.add(lblLastUpdated);
-        
-        lblSearch = new JLabel("Search:");
+
+        JLabel lblSearch = new JLabel("Search:");
         lblSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblSearch.setBounds(20, 50, 50, 25);
+        lblSearch.setBounds(20, 50, 50, 20);
         contentPane.add(lblSearch);
 
         txtSearch = new JTextField();
-        txtSearch.setBounds(70, 50, 250, 25);
+        txtSearch.setBounds(70, 50, 200, 22);
+        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { filter(); }
+            public void removeUpdate(DocumentEvent e) { filter(); }
+            public void changedUpdate(DocumentEvent e) { filter(); }
+        });
         contentPane.add(txtSearch);
-
+        
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setBounds(20, 85, 810, 315);
         contentPane.add(scrollPane);
@@ -86,21 +91,10 @@ public class MeatInventoryGUI extends JFrame {
         table = new JTable(tableModel);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        
+        sorter = new TableRowSorter<>(tableModel);
+        table.setRowSorter(sorter);
         scrollPane.setViewportView(table);
-
-        rowSorter = new TableRowSorter<>(tableModel);
-        table.setRowSorter(rowSorter);
-
-        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { filter(); }
-            @Override public void removeUpdate(DocumentEvent e) { filter(); }
-            @Override public void changedUpdate(DocumentEvent e) { filter(); }
-            private void filter() {
-                String text = txtSearch.getText();
-                if (text.trim().length() == 0) rowSorter.setRowFilter(null);
-                else rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
-            }
-        });
 
         JButton btnRefresh = new JButton("Refresh");
         btnRefresh.setBounds(20, 410, 100, 30);
@@ -118,6 +112,15 @@ public class MeatInventoryGUI extends JFrame {
         refreshTableData();
         Timer timer = new Timer(5000, e -> refreshTableData());
         timer.start();
+    }
+
+    private void filter() {
+        String text = txtSearch.getText();
+        if (text.trim().length() == 0) {
+            sorter.setRowFilter(null);
+        } else {
+            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+        }
     }
 
     private void toggleTheme(boolean isDark) {
