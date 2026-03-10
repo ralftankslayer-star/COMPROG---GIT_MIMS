@@ -1,14 +1,21 @@
 package Comprog_MIMS_PRACACT;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseConnection {
-    private static final String URL = "jdbc:mysql://localhost:3306/meat_inventory";
+    private static final String URL = "jdbc:mysql://localhost:3306/Meat_Inventory";
     private static final String USER = "root"; 
-    private static final String PASS = ""; 
+    private static final String PASS = "H295-rough"; 
 
     public static Connection getConnection() throws SQLException {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            throw new SQLException("MySQL JDBC Driver not found in classpath.");
+        }
         return DriverManager.getConnection(URL, USER, PASS);
     }
 }
