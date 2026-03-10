@@ -1,7 +1,10 @@
 package Comprog_MIMS_PRACACT;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.List;
 
@@ -11,11 +14,12 @@ public class SupplierGUI extends JFrame {
     private JTable table;
     private DefaultTableModel tableModel;
     private InventoryDAO inventoryDAO;
+    private TableRowSorter<DefaultTableModel> rowSorter;
 
-    private JTextField txtName, txtPrice, txtStock, txtSpecific2;
+    private JTextField txtName, txtPrice, txtStock, txtSpecific2, txtSearch;
     private JComboBox<String> cbCategory, cbSpecific1;
     private JCheckBox chkSpecific2, chkShowAsNew;
-    private JLabel lblSpecific1, lblSpecific2, lblConnectionStatus;
+    private JLabel lblSpecific1, lblSpecific2, lblConnectionStatus, lblSearch;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(() -> {
@@ -62,8 +66,11 @@ public class SupplierGUI extends JFrame {
         btnQuit.addActionListener(e -> System.exit(0));
         contentPane.add(btnQuit);
 
+        lblSearch = addLabel("Search:", 20, 60);
+        txtSearch = addTextField(70, 60, 250);
+
         JScrollPane scrollPane = new JScrollPane();
-        scrollPane.setBounds(20, 60, 870, 280);
+        scrollPane.setBounds(20, 95, 870, 245);
         contentPane.add(scrollPane);
 
         tableModel = new DefaultTableModel(new String[]{"ID", "Name", "Category", "Price/Kg", "Stock", "Specifics", "Show New"}, 0) {
@@ -71,6 +78,20 @@ public class SupplierGUI extends JFrame {
         };
         table = new JTable(tableModel);
         scrollPane.setViewportView(table);
+
+        rowSorter = new TableRowSorter<>(tableModel);
+        table.setRowSorter(rowSorter);
+
+        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { filter(); }
+            @Override public void removeUpdate(DocumentEvent e) { filter(); }
+            @Override public void changedUpdate(DocumentEvent e) { filter(); }
+            private void filter() {
+                String text = txtSearch.getText();
+                if (text.trim().length() == 0) rowSorter.setRowFilter(null);
+                else rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+            }
+        });
         
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) populateFieldsFromSelection();
@@ -245,10 +266,11 @@ public class SupplierGUI extends JFrame {
     }
 
     private void populateFieldsFromSelection() {
-        int row = table.getSelectedRow();
-        if (row < 0) return;
+        int viewRow = table.getSelectedRow();
+        if (viewRow < 0) return;
         try {
-            int id = (int) tableModel.getValueAt(row, 0);
+            int modelRow = table.convertRowIndexToModel(viewRow);
+            int id = (int) tableModel.getValueAt(modelRow, 0);
             List<MeatProduct> products = inventoryDAO.getAllProducts();
             MeatProduct selected = products.stream().filter(p -> p.getProductId() == id).findFirst().orElse(null);
             
@@ -313,9 +335,10 @@ public class SupplierGUI extends JFrame {
     }
 
     private void updateProduct() {
-        int row = table.getSelectedRow();
-        if (row < 0) return;
-        MeatProduct product = createProductFromFields((int) tableModel.getValueAt(row, 0));
+        int viewRow = table.getSelectedRow();
+        if (viewRow < 0) return;
+        int modelRow = table.convertRowIndexToModel(viewRow);
+        MeatProduct product = createProductFromFields((int) tableModel.getValueAt(modelRow, 0));
         if (product != null) {
             try {
                 inventoryDAO.updateProduct(product);
@@ -325,17 +348,18 @@ public class SupplierGUI extends JFrame {
     }
 
     private void deleteProduct() {
-        int row = table.getSelectedRow();
-        if (row < 0) return;
+        int viewRow = table.getSelectedRow();
+        if (viewRow < 0) return;
+        int modelRow = table.convertRowIndexToModel(viewRow);
         try {
-            inventoryDAO.deleteProduct((int) tableModel.getValueAt(row, 0));
+            inventoryDAO.deleteProduct((int) tableModel.getValueAt(modelRow, 0));
             refreshTable();
             clearFields();
         } catch (Exception e) {}
     }
 
     private void clearFields() {
-        txtName.setText(""); txtPrice.setText(""); txtStock.setText(""); txtSpecific2.setText("");
+        txtName.setText(""); txtPrice.setText(""); txtStock.setText(""); txtSpecific2.setText(""); txtSearch.setText("");
         chkSpecific2.setSelected(false); chkShowAsNew.setSelected(true); table.clearSelection();
     }
 }

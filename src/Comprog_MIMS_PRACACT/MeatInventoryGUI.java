@@ -1,7 +1,10 @@
 package Comprog_MIMS_PRACACT;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -14,7 +17,9 @@ public class MeatInventoryGUI extends JFrame {
     private JTable table;
     private DefaultTableModel tableModel;
     private InventoryDAO inventoryDAO;
-    private JLabel lblConnectionStatus, lblLastUpdated;
+    private JLabel lblConnectionStatus, lblLastUpdated, lblSearch;
+    private JTextField txtSearch;
+    private TableRowSorter<DefaultTableModel> rowSorter;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(() -> {
@@ -61,8 +66,17 @@ public class MeatInventoryGUI extends JFrame {
         lblLastUpdated.setBounds(520, 20, 200, 20);
         contentPane.add(lblLastUpdated);
         
+        lblSearch = new JLabel("Search:");
+        lblSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSearch.setBounds(20, 50, 50, 25);
+        contentPane.add(lblSearch);
+
+        txtSearch = new JTextField();
+        txtSearch.setBounds(70, 50, 250, 25);
+        contentPane.add(txtSearch);
+
         JScrollPane scrollPane = new JScrollPane();
-        scrollPane.setBounds(20, 50, 810, 350);
+        scrollPane.setBounds(20, 85, 810, 315);
         contentPane.add(scrollPane);
         
         tableModel = new DefaultTableModel(new Object[][] {}, new String[] { "ID", "Name", "Category", "Price/Kg", "Stock (kg)", "Specifics" }) {
@@ -74,14 +88,28 @@ public class MeatInventoryGUI extends JFrame {
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         scrollPane.setViewportView(table);
 
+        rowSorter = new TableRowSorter<>(tableModel);
+        table.setRowSorter(rowSorter);
+
+        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { filter(); }
+            @Override public void removeUpdate(DocumentEvent e) { filter(); }
+            @Override public void changedUpdate(DocumentEvent e) { filter(); }
+            private void filter() {
+                String text = txtSearch.getText();
+                if (text.trim().length() == 0) rowSorter.setRowFilter(null);
+                else rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+            }
+        });
+
         JButton btnRefresh = new JButton("Refresh");
-        btnRefresh.setBounds(20, 420, 100, 30);
+        btnRefresh.setBounds(20, 410, 100, 30);
         btnRefresh.setFocusPainted(false);
         btnRefresh.addActionListener(e -> refreshTableData());
         contentPane.add(btnRefresh);
 
         JButton btnQuit = new JButton("Quit");
-        btnQuit.setBounds(730, 420, 100, 30);
+        btnQuit.setBounds(730, 410, 100, 30);
         btnQuit.setFocusPainted(false);
         btnQuit.addActionListener(e -> System.exit(0));
         contentPane.add(btnQuit);
@@ -109,6 +137,9 @@ public class MeatInventoryGUI extends JFrame {
                     c.setForeground(fg);
                 }
             } else if (c instanceof JButton) {
+                c.setBackground(btnBg);
+                c.setForeground(fg);
+            } else if (c instanceof JTextField) {
                 c.setBackground(btnBg);
                 c.setForeground(fg);
             } else if (c instanceof JScrollPane) {
